@@ -10,10 +10,10 @@ addpath(genpath('.\Input\'));
 % 4 - Compute       --> obj.computeVariables;
 % 5 - Postprocess   --> obj.postProcess;
 %% test
-run('test.m')
-clear variables
+% run('test.m')
+% clear variables
 %% Main.m
-triangle_linear = Physical_Problem('CantileverBeam_Triangle_Linear');
+triangle_linear = Physical_Problem('Stokes');
 triangle_linear.preProcess;
 triangle_linear.computeVariables;
 triangle_linear.postProcess;

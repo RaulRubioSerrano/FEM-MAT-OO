@@ -5,7 +5,7 @@ classdef DIM
         nstre
 %         nnode
     end
-    properties (GetAccess = {?Physical_Problem,?PhysicalVariables,?Postprocess}, SetAccess = private)
+    properties (GetAccess = {?Physical_Problem,?PhysicalVariables,?Element,?Postprocess}, SetAccess = private)
         ndim
 %         ngaus
         nunkn
@@ -25,6 +25,18 @@ classdef DIM
                             obj.nunkn = 3;
                             obj.nstre = 6;
                     end
+                case 'THERMAL'
+                    error('Still not implemented.')
+                case 'Stokes'
+                        case '2D'
+                            obj.ndim = 2;
+                            obj.nunkn.u = 2;
+                            obj.nunkn.p = 1;
+                            obj.nstre = 0;
+                        case '3D'
+                            obj.ndim = 3;
+                            obj.nunkn = 3;
+                            obj.nstre = 6;
             end
         end
     end

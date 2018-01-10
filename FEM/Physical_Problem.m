@@ -10,6 +10,15 @@ classdef Physical_Problem < FEM
         dof
         bc
         problemID
+        
+        %mover a protected
+        interpolation_geometry
+        quadrature_geometry
+%         geometry
+        
+        interpolation_variable
+        quadrature_variable
+%         geometry_variable
     end
     
         
@@ -18,6 +27,7 @@ classdef Physical_Problem < FEM
         material
         element
         physicalVars
+
     end
     
     %% Public methods definition ==========================================
@@ -25,22 +35,41 @@ classdef Physical_Problem < FEM
         function obj = Physical_Problem(problemID)
             obj.problemID = problemID;
             obj.mesh = Mesh(obj.problemID);
+            obj.interpolation_geometry = Interpolation.create('mesh');
+            obj.interpolation_geometry.compute(obj.mesh);
+            obj.quadrature_geometry = Quadrature (obj.interpolation_geometry.geometry_type,obj.interpolation_geometry.order);
+            obj.geometry = Geometry(obj.interpolation_geometry,obj.quadrature_geometry,obj.mesh.nelem);
+            
+           
+                nfields=2; % nomes per stokes, s'haura de posar a algun altre lloc
+                order= {'QUADRATIC','CONSTANT'};
+%                 order = strjoin(order);
+                for i=1:nfields
+                quadrature_variable(i) = Quadrature (obj.mesh.geometryType,strjoin(order(i)));
+                interpolation_variable(i) = Interpolation.create ('variable');
+                interpolation_variable(i).compute(obj.interpolation_geometry,strjoin(order(i)));
+                geometry(i) = Geometry(interpolation_variable(i),quadrature_variable(i),obj.mesh.nelem); 
+                end
+            obj.quadrature_variable = quadrature_variable;
+            obj.interpolation_variable = interpolation_variable;
+            obj.geometry_variable = geometry;
             obj.dim = DIM(obj.mesh.ptype,obj.mesh.pdim);
-            obj.geometry=Geometry(obj.mesh);
+%             obj.geometry=Geometry(obj.mesh);
             obj.material = Material.create(obj.mesh.ptype,obj.mesh.pdim,obj.mesh.nelem); 
         end
         
         function preProcess(obj)
             % Create Objects
-            obj.bc = BC(obj.dim.nunkn,obj.problemID);
-            obj.dof = DOF(obj.geometry.nnode,obj.mesh.connec,obj.dim.nunkn,obj.mesh.npnod,obj.bc.fixnodes);
+%             obj.bc = BC(obj.dim.nunkn,obj.problemID);
+%             obj.dof = DOF(obj.geometry.nnode,obj.mesh.connec,obj.dim.nunkn,obj.mesh.npnod,obj.bc.fixnodes);
             obj.element = Element.create(obj.mesh.ptype,obj.mesh.pdim);
             obj.physicalVars = PhysicalVariables.create(obj.mesh.ptype,obj.mesh.pdim);
             obj.solver = Solver_Dirichlet_Conditions;
         end
         
         function computeVariables(obj)
-            obj.element.computeLHS(obj.dim.nunkn,obj.dim.nstre,obj.mesh.nelem,obj.geometry,obj.material);
+            nfields=2;
+            obj.element.computeLHS(obj.dim,obj.mesh.nelem,obj.geometry,nfields,obj.material);
             obj.element.computeRHS(obj.dim.nunkn,obj.mesh.nelem,obj.geometry.nnode,obj.bc,obj.dof.idx);
             
             % Assembly

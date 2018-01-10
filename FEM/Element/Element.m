@@ -9,7 +9,7 @@ classdef Element<handle
         LHS
     end
     
-    properties (GetAccess = {?Element_Elastic,?Element_Thermal,?PhysicalVariables,?Element_Elastic_Micro}, SetAccess = {?Physical_Problem,?Element, ?Element_Elastic_Micro})
+    properties (GetAccess = {?Element_Elastic,?Element_Thermal,?PhysicalVariables,?Element_Elastic_Micro,?Element_stokes}, SetAccess = {?Physical_Problem,?Element, ?Element_Elastic_Micro})
         B
     end
     
@@ -28,6 +28,11 @@ classdef Element<handle
                 case 'THERMAL'
                     element = Element_Thermal;
                     element.B = B_thermal;
+                    
+                case 'Stokes'
+                    element = Element_stokes;
+                    element.B = B_stokes;
+                    
                 otherwise
                     error('Invalid ptype.')
             end
@@ -40,12 +45,22 @@ classdef Element<handle
             RHSVolumetric  = obj.computeVolumetricRHS(nunkn,nelem,nnode,bc,idx);
             obj.RHS = RHSSuperficial + RHSVolumetric + RHSPuntual;
         end
+        
+        function obj = computeLHS(obj,dim,nelem,geometry_variable,nfields,material)
+            for ifield=1:nfields
+                for jfield=1:nfields
+                    LHS(ifield,jfield)= obj.computeMatrix(dim,nelem,geometry_variable(ifield),geometry_variable(jfield),material,ifield,jfield);
+                end
+            end
+            obj.LHS = LHS;
+        end
     end
     
     methods (Abstract, Access = protected)
         r = computePuntualRHS(obj)
         r = computeSuperficialRHS(obj)
         r = computeVolumetricRHS(obj)
+        r = computeMatrix(obj)
     end
 end
 
