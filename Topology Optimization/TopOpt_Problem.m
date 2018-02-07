@@ -54,8 +54,11 @@ classdef TopOpt_Problem < handle
                     settings.nconstr=1;
                     obj=TopOpt_Problem_Chomog(settings);
                     obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-
-
+                    
+                case 'ChomogLamPerimeter_st_VolumeEnforceCh_inf'
+                    settings.nconstr=7;
+                    obj=TopOpt_Problem_Chomog(settings);
+                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
                 otherwise
                     error('Problem not added');
             end
@@ -66,16 +69,16 @@ classdef TopOpt_Problem < handle
         function obj=TopOpt_Problem(settings)
             obj.settings=settings;
             obj.TOL=obj.settings.TOL;
-            obj.interpolation=Interpolation.create(obj.TOL,settings.material,settings.method);                       
+            obj.interpolation=Interpolation.create(obj.TOL,settings.material,settings.method);
             switch obj.settings.optimizer
                 case 'SLERP'
                     obj.optimizer=Optimizer_AugLag(settings,Optimizer_SLERP(settings));
                 case 'PROJECTED GRADIENT'
                     obj.optimizer=Optimizer_AugLag(settings,Optimizer_PG(settings));
-
+                    
                 case 'MMA'
                     obj.optimizer=Optimizer_MMA(settings);
-
+                    
                 case 'IPOPT'
                     obj.optimizer=Optimizer_IPOPT(settings);
             end
@@ -84,30 +87,30 @@ classdef TopOpt_Problem < handle
         
         function preProcess(obj)
             %initialize design variable
-            obj.physicalProblem.preProcess;    
+            obj.physicalProblem.preProcess;
             obj.filter.preProcess(obj.physicalProblem);
             obj.incremental_scheme=Incremental_Scheme(obj.settings,obj.physicalProblem);
             obj.compute_initial_design;
-
+            
         end
-
+        
         function computeVariables(obj)
             for istep = 1:obj.settings.nsteps
-                disp(strcat('Incremental step: ', int2str(istep)))            
-                obj.incremental_scheme.update_target_parameters(istep, obj.cost, obj.constraint, obj.optimizer);   
-                obj.compute_physical_variables;                
+                disp(strcat('Incremental step: ', int2str(istep)))
+                obj.incremental_scheme.update_target_parameters(istep, obj.cost, obj.constraint, obj.optimizer);
+                obj.compute_physical_variables;
                 obj.cost.computef(obj.x,obj.physicalProblem,obj.interpolation,obj.filter);
                 obj.constraint.computef(obj.x, obj.physicalProblem, obj.interpolation,obj.filter);
                 obj.optimizer.setPhysicalProblem(obj.physicalProblem);
                 obj.x=obj.optimizer.solveProblem(obj.x,obj.cost,obj.constraint,obj.interpolation,obj.filter);
             end
         end
-
+        
         function postProcess(obj)
             % Video creation
             if obj.settings.printing
-                gidPath = 'C:\Program Files\GiD\GiD 13.0.2';% 'C:\Program Files\GiD\GiD 13.0.3';
-                files_name = [];
+                gidPath = 'C:\Program Files\GiD\GiD 13.0.3';% 'C:\Program Files\GiD\GiD 13.0.3';
+                files_name = obj.settings.filename;
                 files_folder = fullfile(pwd,'Output');
                 iterations = 0:obj.optimizer.niter;
                 video_name=strcat('./Videos/Video_',obj.settings.ptype,'_',obj.settings.optimizer,'_',obj.settings.method,'_',int2str(obj.settings.nsteps) ...
@@ -131,7 +134,7 @@ classdef TopOpt_Problem < handle
             
         end
     end
-
+    
     
     methods (Access=private)
         function obj = compute_initial_design(obj)
@@ -146,9 +149,9 @@ classdef TopOpt_Problem < handle
                     obj.hole_value= 0;
                     
             end
-             
             
-                    
+            
+            
             
             obj.x=obj.ini_design_value*ones(obj.physicalProblem.mesh.npnod,obj.physicalProblem.geometry.ngaus);
             switch obj.settings.initial_case
@@ -205,7 +208,7 @@ classdef TopOpt_Problem < handle
             rho_elem = obj.filter.getP0fromP1(obj.x);
             matprop = obj.interpolation.computeMatProp(rho_elem);
             obj.physicalProblem.setMatProps(matprop);
-        end        
+        end
         function obj = compute_physical_variables(obj)
             switch obj.physicalProblem.mesh.scale
                 case 'MICRO'
@@ -215,5 +218,5 @@ classdef TopOpt_Problem < handle
             end
         end
     end
-
+    
 end

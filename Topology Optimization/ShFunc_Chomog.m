@@ -8,7 +8,7 @@ classdef ShFunc_Chomog < Shape_Functional
     end
     methods
         function obj=ShFunc_Chomog(settings)
-%            obj@Shape_Functional(settings);            
+           obj.target_parameters = settings.target_parameters;            
         end
     end
     methods (Access = protected)
@@ -64,6 +64,58 @@ classdef ShFunc_Chomog < Shape_Functional
             obj.Chomog = variables.Chomog;
             obj.tstrain = variables.tstrain;
             obj.tstress = variables.tstress;            
+        end
+        
+         function r = compute_Ch_star(obj,TOL)
+            E_plus = TOL.E_plus;
+            E_minus = TOL.E_minus;
+            nu_plus = TOL.nu_plus;
+            nu_minus = TOL.nu_minus;
+            
+            C_Cstar_case = 'nu_0_6';
+            
+            switch C_Cstar_case
+                case 'negative_poisson'
+                    kappa_f = @(E,nu) E/2*(1-nu);
+                    mu_f = @(E,nu) E/2*(1-nu);
+                    
+                    k_plus = kappa_f(E_plus,nu_plus);
+                    mu_plus = mu_f(E_plus,nu_plus);
+                    
+                    k_minus = kappa_f(E_minus,nu_minus);
+                    mu_minus = mu_f(E_minus,nu_minus);
+                    
+                    
+                    nu = @(k,mu) (k-mu)/(k+mu);
+                    E = @(k,mu) (4*k*mu)/(k+mu);
+                    C = @(E,nu) (E/(1-nu*nu)*[1 nu 0; nu 1 0; 0 0 (1-nu)/2]);
+                    
+                    kappa_nu_min = k_minus;
+                    mu_nu_min = mu_plus;
+                    
+                    nu_min = nu(kappa_nu_min,mu_nu_min);
+                    E_nu_min = E(kappa_nu_min,mu_nu_min);
+                    C_nu_min = C(E_nu_min,nu_min);
+                    r = C_nu_min;
+                    
+                case 'nu_0_6' %From Sigmund Thesis% rho = 0.38
+                    C = @(E,nu) (E/(1-nu*nu)*[1 nu 0; nu 1 0; 0 0 (1-nu)/2]);
+                    nu = -0.6;
+                    E = (1-nu*nu)*0.04;
+                    r = C(E,nu);
+                    
+                case 'Seba' % Es=0.08; nus=-0.25
+                    
+                    r = [0.0853    -0.0213       0;
+                        -0.0213    0.0853       0;
+                        0         0    0.0533];
+                    
+                case 'nu_0_8' %From Sigmund Thesis% rho = 0.25
+                    C = @(E,nu) (E/(1-nu*nu)*[1 nu 0; nu 1 0; 0 0 (1-nu)/2]);
+                    nu = -0.8;
+                    E = (1-nu*nu)*0.02;
+                    r = C(E,nu);
+            end
         end
     end
 end

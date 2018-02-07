@@ -11,14 +11,14 @@ clear variables;
 %% settings
 
 % settings.filename='TOPOPT_TEST';  %MACRO
-%settings.filename='RVE_Square_Triangle';
-settings.filename='RVE_Square_Triangle_Fine';
+settings.filename='RVE_Square_Triangle';
+% settings.filename='RVE_Square_Triangle_Fine';
 %settings.filename='topopt_quad';
 %settings.filename='GrippingNew';
 
 settings.plotting=true;
-settings.printing=false;
-settings.maxiter = 5000;
+settings.printing=true;
+settings.maxiter = 2000;
 
 
 settings.method='SIMPALL';
@@ -39,17 +39,18 @@ settings.initial_case='circle';
 % settings.ptype='Compliance_st_VolumePerimeter';
 % settings.ptype='Chomog_alphabeta_st_Volume';
 % settings.ptype='Chomog_fraction_st_Volume';
-settings.ptype='ChomogLamPerimeter_alphabeta_st_Volume';
-%settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
+% settings.ptype='ChomogLamPerimeter_alphabeta_st_Volume';
+settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
+% settings.ptype='ChomogLamPerimeter_st_VolumeEnforceCh_inf';
 
 %if settings.filename=='GrippingNew'
 %    settings.ptype='Gripping';
 %end
 
-%settings.optimizer='SLERP';
-%settings.optimizer='PROJECTED GRADIENT';
-settings.optimizer='MMA';
-%settings.optimizer='IPOPT';
+% settings.optimizer='MMA';
+% settings.optimizer='PROJECTED GRADIENT';
+settings.optimizer='SLERP';
+% settings.optimizer='IPOPT';
 
 settings.filter='P1'; %PDE
 
@@ -60,12 +61,13 @@ settings.TOL.E_minus=1e-3;
 settings.TOL.nu_plus=1/3;
 settings.TOL.nu_minus=1/3;
 
-settings.target_parameters.Vfrac=0.3;
+settings.target_parameters.Vfrac=0.5;
 settings.target_parameters.optimality_tol=1e-3;
 settings.target_parameters.constr_tol=1e-3;
 settings.target_parameters.Perimeter_target=5;
 settings.perimeter.optimizer=settings.optimizer;
-settings.perimeter.lambda=0.1;%%%%%%%%%%%%
+settings.perimeter.lambda=0.1;
+settings.target_parameters.epsilon_isotropy = 1e-1;%%%%%%
 
 settings.nsteps=1;
 settings.Vfrac_final=settings.target_parameters.Vfrac;
@@ -77,8 +79,11 @@ settings.optimality_initial=1e-1;
 settings.constr_initial=1e-1;
 
 
-settings.micro.alpha =[1 0 0]';
-settings.micro.beta =[1 0 0]';
+settings.micro.alpha =[1 0 0]';%[1 0 0]'
+settings.micro.beta =[0 -1 0]';%[0 -1 0]'
+settings.selectiveC_Cstar = [1,1,1;
+                            1,1,1;
+                             1,1,1];
 
 
 settings.optimality_initial=1e-3;

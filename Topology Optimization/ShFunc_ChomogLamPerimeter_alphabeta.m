@@ -16,8 +16,9 @@ classdef ShFunc_ChomogLamPerimeter_alphabeta< Shape_Functional
         function computef(obj,x,physicalProblem,interpolation,filter)      
             obj.chomog.target_parameters=obj.target_parameters;
             obj.perimeter.target_parameters=obj.target_parameters;            
-            obj.perimeter.computef(x, physicalProblem, interpolation,filter);
+            
             obj.chomog.computef(x, physicalProblem, interpolation,filter);
+            obj.perimeter.computef(x, physicalProblem, interpolation,filter);
             
             obj.value=obj.chomog.value+obj.lambda*obj.perimeter.value;
             obj.gradient=obj.chomog.gradient+obj.lambda*obj.perimeter.gradient;
