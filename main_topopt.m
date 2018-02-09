@@ -33,15 +33,20 @@ settings.initial_case='circle';
 % settings.initial_case='feasible';
 % settings.initial_case='rand';
 
-
+%MACRO
 %settings.ptype='Compliance_st_Volume';
 %settings.ptype='ComplianceLamPerimeter_st_Volume';
-% settings.ptype='Compliance_st_VolumePerimeter';
+%settings.ptype='Compliance_st_VolumePerimeter';
+
 % settings.ptype='Chomog_alphabeta_st_Volume';
 % settings.ptype='Chomog_fraction_st_Volume';
+% settings.ptype='Chomog_CC_st_Volume';
+
 % settings.ptype='ChomogLamPerimeter_alphabeta_st_Volume';
-settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
-% settings.ptype='ChomogLamPerimeter_st_VolumeEnforceCh_inf';
+% settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
+% settings.ptype='ChomogLamPerimeter_CC_st_Volume';
+
+settings.ptype='ChomogLamPerimeter_st_VolumeEnforceCh_inf';
 
 %if settings.filename=='GrippingNew'
 %    settings.ptype='Gripping';
@@ -67,20 +72,27 @@ settings.target_parameters.constr_tol=1e-3;
 settings.target_parameters.Perimeter_target=5;
 settings.perimeter.optimizer=settings.optimizer;
 settings.perimeter.lambda=0.1;
-settings.target_parameters.epsilon_isotropy = 1e-1;%%%%%%
+settings.target_parameters.epsilon_isotropy = 1e-3;%%%%%%
+
+% if strcmp(problembsc.enforceCh_type,'isotropy')
+%     target_parameters.epsilon_isotropy_ini = 1e-3;
+%     target_parameters.epsilon_isotropy_final = 1e-5;
+% end
 
 settings.nsteps=1;
 settings.Vfrac_final=settings.target_parameters.Vfrac;
 settings.optimality_final=settings.target_parameters.optimality_tol;
 settings.constr_final=settings.target_parameters.constr_tol;
-settings.Vfrac_initial=1;
+settings.epsilon_isotropy_final=settings.target_parameters.epsilon_isotropy;
 
+settings.Vfrac_initial=1;
 settings.optimality_initial=1e-1;
 settings.constr_initial=1e-1;
+settings.epsilon_isotropy_initial=1e-1;
 
 
-settings.micro.alpha =[1 0 0]';%[1 0 0]'
-settings.micro.beta =[0 -1 0]';%[0 -1 0]'
+settings.micro.alpha =[1 1 0]';%[1 0 0]'
+settings.micro.beta =[1 1 0]';%[0 -1 0]'
 settings.selectiveC_Cstar = [1,1,1;
                             1,1,1;
                              1,1,1];

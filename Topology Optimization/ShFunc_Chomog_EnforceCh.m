@@ -14,8 +14,8 @@ classdef ShFunc_Chomog_EnforceCh< ShFunc_Chomog
             if isempty(obj.h_C_0)
                 obj.h_C_0 = obj.value;
             end
-            obj.value = obj.value/abs(obj.h_C_0);
-            gradient=gradient/abs(obj.h_C_0);
+%             obj.value = obj.value/abs(obj.h_C_0);
+%             gradient=gradient/abs(obj.h_C_0);
 %             obj.h_C_0 = costfunc;
                         
             obj.gradient = gradient;

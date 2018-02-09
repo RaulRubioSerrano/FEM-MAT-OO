@@ -72,7 +72,7 @@ classdef ShFunc_Chomog < Shape_Functional
             nu_plus = TOL.nu_plus;
             nu_minus = TOL.nu_minus;
             
-            C_Cstar_case = 'nu_0_6';
+            C_Cstar_case = 'Seba';
             
             switch C_Cstar_case
                 case 'negative_poisson'

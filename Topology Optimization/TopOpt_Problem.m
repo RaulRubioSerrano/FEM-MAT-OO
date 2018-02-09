@@ -148,10 +148,7 @@ classdef TopOpt_Problem < handle
                     obj.ini_design_value= 1;
                     obj.hole_value= 0;
                     
-            end
-            
-            
-            
+            end         
             
             obj.x=obj.ini_design_value*ones(obj.physicalProblem.mesh.npnod,obj.physicalProblem.geometry.ngaus);
             switch obj.settings.initial_case

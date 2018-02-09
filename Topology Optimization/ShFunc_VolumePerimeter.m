@@ -1,4 +1,4 @@
-classdef ShFunc_VolumePerimeter< Shape_Functional
+ classdef ShFunc_VolumePerimeter< Shape_Functional
     properties 
         volume
         perimeter

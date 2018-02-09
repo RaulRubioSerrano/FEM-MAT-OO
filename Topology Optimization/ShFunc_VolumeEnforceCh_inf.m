@@ -18,7 +18,7 @@ classdef ShFunc_VolumeEnforceCh_inf< Shape_Functional
         function computef(obj, x, physicalProblem, interpolation,filter)
             obj.volume.target_parameters=obj.target_parameters;
             obj.volume.computef(x, physicalProblem, interpolation,filter);
-            obj.value(1,1)=obj.volume.value;
+            obj.value(1)=obj.volume.value;
             obj.gradient(:,1)=obj.volume.gradient;            
             for i=1:6
                 obj.enforceCh{i}.target_parameters=obj.target_parameters;
