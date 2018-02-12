@@ -13,6 +13,7 @@ classdef ShFunc_Chomog_EnforceCh_CCstar < ShFunc_Chomog_EnforceCh
             obj.epsilon = settings.target_parameters.epsilon_isotropy;
         end
         function computef(obj,x,physicalProblem,interpolation,filter)
+            physicalProblem.computeChomog;
             obj.setPhysicalData(physicalProblem.variables);
             %Cost
             Ch_star_div = obj.Ch_star;

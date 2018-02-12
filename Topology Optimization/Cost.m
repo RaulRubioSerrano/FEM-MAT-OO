@@ -11,6 +11,8 @@ classdef Cost < Shape_Functional
             obj.multipliers=multipliers;
             for ifunc=1:length(settings.cost)
                 switch settings.cost{ifunc}
+                    case 'volume'
+                        obj.ShapeFuncs{ifunc}=ShFunc_Volume(settings);
                     case 'compliance'
                         obj.ShapeFuncs{ifunc}=ShFunc_Compliance(settings);
                     case 'perimeter'

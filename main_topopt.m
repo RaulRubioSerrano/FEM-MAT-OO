@@ -44,16 +44,17 @@ settings.initial_case='circle';
 % settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
 % settings.ptype='ChomogLamPerimeter_CC_st_Volume';
 % settings.ptype='ChomogLamPerimeter_CC_st_VolumeEnforceCh_inf';
+% settings.ptype='VolumeLamPerimeter_st_enforceCh_inf';(min weight)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-settings.cost={'chomog_CC';'perimeter'};%'chomog_xxxxx';'compliance';'perimeter';
+settings.cost={'volume';'perimeter'};%'chomog_xxxxx';'compliance';'perimeter';
 % settings.multipliers=[]; %all 1
 settings.multipliers=[1 0.1]; %compl+lambda*perimeter
-settings.constraint={'volume';'enforceCh_CCstar'};
+settings.constraint={'enforceCh_CCstar'};%volume
 
-settings.optimizer='SLERP';
-%settings.optimizer='PROJECTED GRADIENT';settings.kappaMultiplier=1;
-% settings.optimizer='MMA';
+% settings.optimizer='SLERP';
+% settings.optimizer='PROJECTED GRADIENT';settings.kappaMultiplier=1;
+settings.optimizer='MMA';
 % settings.optimizer='IPOPT';
 
 settings.filter='P1';%'PDE';
@@ -66,10 +67,11 @@ settings.TOL.nu_plus=1/3;
 settings.TOL.nu_minus=1/3;
 
 
-settings.target_parameters.Vfrac=0.5;
+settings.target_parameters.Vfrac=1;
+settings.target_parameters.Perimeter_target=3;
+
 settings.target_parameters.optimality_tol=1e-3;
 settings.target_parameters.constr_tol=1e-3;
-settings.target_parameters.Perimeter_target=5;
 settings.perimeter.optimizer=settings.optimizer;
 settings.target_parameters.epsilon_isotropy = 1e-3;%%%%%%
 
