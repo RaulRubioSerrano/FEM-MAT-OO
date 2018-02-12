@@ -17,56 +17,17 @@ classdef TopOpt_Problem < handle
         hole_value
         ini_design_value
     end
-    
-    methods (Static)
-        function obj=create(settings)
-            switch settings.ptype
-                case 'Compliance_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Compliance_st_Volume(settings);
-                    obj.physicalProblem=Physical_Problem(obj.settings.filename);
-                case 'Compliance_st_VolumePerimeter'
-                    settings.nconstr=2;
-                    obj=TopOpt_Problem_Compliance_st_VolumePerimeter(settings);
-                    obj.physicalProblem=Physical_Problem(obj.settings.filename);
-                case 'ComplianceLamPerimeter_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_ComplianceLamPerimeter_st_Volume(settings);
-                    obj.physicalProblem=Physical_Problem(obj.settings.filename);
-                case 'Gripping'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Gripping(settings);
-                    obj.physicalProblem=Physical_Problem(obj.settings.filename);
-                    
-                case 'Chomog_alphabeta_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Chomog(settings);
-                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-                case 'ChomogLamPerimeter_alphabeta_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Chomog(settings);
-                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-                case 'Chomog_fraction_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Chomog(settings);
-                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-                case 'ChomogLamPerimeter_fraction_st_Volume'
-                    settings.nconstr=1;
-                    obj=TopOpt_Problem_Chomog(settings);
-                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-                    
-                case 'ChomogLamPerimeter_st_VolumeEnforceCh_inf'
-                    settings.nconstr=7;
-                    obj=TopOpt_Problem_Chomog(settings);
-                    obj.physicalProblem=Physical_Problem_Micro(obj.settings.filename);
-                otherwise
-                    error('Problem not added');
-            end
-            
-        end
-    end
     methods (Access = public)
-        function obj=TopOpt_Problem(settings)
+        function obj=TopOpt_Problem(settings)            
+            obj.cost=Cost(settings,settings.multipliers);
+            obj.constraint=Constraint(settings);
+            settings.nconstr=length(obj.constraint.ShapeFuncs);
+            switch settings.ptype
+                case 'MACRO'
+                    obj.physicalProblem=Physical_Problem(settings.filename);
+                case 'MICRO'
+                    obj.physicalProblem=Physical_Problem_Micro(settings.filename);
+            end
             obj.settings=settings;
             obj.TOL=obj.settings.TOL;
             obj.interpolation=Interpolation.create(obj.TOL,settings.material,settings.method);
@@ -91,14 +52,15 @@ classdef TopOpt_Problem < handle
             obj.filter.preProcess(obj.physicalProblem);
             obj.incremental_scheme=Incremental_Scheme(obj.settings,obj.physicalProblem);
             obj.compute_initial_design;
-            
+            rho=obj.filter.getP0fromP1(obj.x);
+            matProps=obj.interpolation.computeMatProp(rho);
+            obj.physicalProblem.setMatProps(matProps);
         end
         
         function computeVariables(obj)
             for istep = 1:obj.settings.nsteps
                 disp(strcat('Incremental step: ', int2str(istep)))
                 obj.incremental_scheme.update_target_parameters(istep, obj.cost, obj.constraint, obj.optimizer);
-                obj.compute_physical_variables;
                 obj.cost.computef(obj.x,obj.physicalProblem,obj.interpolation,obj.filter);
                 obj.constraint.computef(obj.x, obj.physicalProblem, obj.interpolation,obj.filter);
                 obj.optimizer.setPhysicalProblem(obj.physicalProblem);
@@ -109,7 +71,7 @@ classdef TopOpt_Problem < handle
         function postProcess(obj)
             % Video creation
             if obj.settings.printing
-                gidPath = 'C:\Program Files\GiD\GiD 13.0.3';% 'C:\Program Files\GiD\GiD 13.0.3';
+                gidPath = 'C:\Program Files\GiD\GiD 13.0.3';% 'C:\Program Files\GiD\GiD 13.0.2';(Marc)
                 files_name = obj.settings.filename;
                 files_folder = fullfile(pwd,'Output');
                 iterations = 0:obj.optimizer.niter;
@@ -133,13 +95,69 @@ classdef TopOpt_Problem < handle
             end
             
         end
+        function checkDerivative(obj)
+            obj.preProcess;
+            Msmooth=obj.filter.Msmooth;
+            x0=obj.x;
+            % Initialize function
+            epsi = 1e-6;
+            %initial
+            compliance0=ShFunc_Compliance(obj.settings);
+            % compliance0.h_C_0=1;
+            volume0=ShFunc_Volume(obj.settings);
+            perimeter0=ShFunc_Perimeter(obj.settings);
+            %new
+            compliance=ShFunc_Compliance(obj.settings);
+            % compliance.h_C_0=1;
+            volume=ShFunc_Volume(obj.settings);
+            perimeter=ShFunc_Perimeter(obj.settings);
+            
+            obj.incremental_scheme.update_target_parameters(1, compliance0, volume0, perimeter0);
+            obj.incremental_scheme.update_target_parameters(1, compliance, volume, perimeter);
+            %evaluate initial
+            compliance0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            volume0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            perimeter0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            
+            compliance0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            volume0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            perimeter0.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            
+            compliance.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            volume.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            perimeter.computef(x0,obj.physicalProblem,obj.interpolation,obj.filter);
+            
+            nnod = length(compliance0.gradient);
+            g=zeros(nnod,1);
+            gp=zeros(nnod,1);
+            gv=zeros(nnod,1);
+            for inode = 1:nnod
+                if mod(inode,100)==0
+                    disp(strcat('Node: ',int2str(inode)));
+                end
+                xnew = x0;
+                xnew(inode) = xnew(inode)-epsi;
+                compliance.computef(xnew,obj.physicalProblem,obj.interpolation,obj.filter);
+                volume.computef(xnew,obj.physicalProblem,obj.interpolation,obj.filter);
+                perimeter.computef(xnew,obj.physicalProblem,obj.interpolation,obj.filter);
+                g(inode) = (compliance0.value-compliance.value)/epsi;
+                gv(inode) = (volume0.value-volume.value)/epsi;
+                gp(inode) = (perimeter0.value-perimeter.value)/epsi;
+            end
+            fprintf('Relative error Volume: %g\n',obj.error_norm_field(gv,volume0.gradient,Msmooth));
+            fprintf('Relative error Perimeter: %g\n',obj.error_norm_field(gp,perimeter0.gradient,Msmooth));
+            fprintf('Relative error Compliance: %g\n',obj.error_norm_field(g,compliance0.gradient,Msmooth));
+        end
+        
+        function enorm = error_norm_field(obj,gp,gp0,Msmooth)
+            enodal = gp0 - gp;
+            enorm = (enodal'*Msmooth*enodal)/(gp'*Msmooth*gp);
+        end
     end
     
     
     methods (Access=private)
         function obj = compute_initial_design(obj)
-            
-            
             switch obj.settings.optimizer
                 case 'SLERP'
                     obj.ini_design_value=-1.015243959022692;
@@ -147,9 +165,7 @@ classdef TopOpt_Problem < handle
                 otherwise
                     obj.ini_design_value= 1;
                     obj.hole_value= 0;
-                    
-            end         
-            
+            end
             obj.x=obj.ini_design_value*ones(obj.physicalProblem.mesh.npnod,obj.physicalProblem.geometry.ngaus);
             switch obj.settings.initial_case
                 case 'circle'
@@ -194,26 +210,17 @@ classdef TopOpt_Problem < handle
                 otherwise
                     error('Initialize design variable case not detected.');
             end
-            
             obj.optimizer.Msmooth = obj.filter.Msmooth;
             obj.optimizer.Ksmooth = obj.filter.Ksmooth;
-            obj.optimizer.epsilon_scalar_product_P1 = 1*obj.optimizer.estimate_mesh_size(obj.physicalProblem.mesh.coord,obj.physicalProblem.mesh.connec);
-            
-            sqrt_norma = obj.optimizer.scalar_product(obj.x,obj.x);
-            obj.x = obj.x/sqrt(sqrt_norma);
-            
+            obj.optimizer.epsilon_scalar_product_P1 = obj.incremental_scheme.epsilon;
+            if strcmp(obj.settings.optimizer,'SLERP')
+                sqrt_norma = obj.optimizer.scalar_product(obj.x,obj.x);
+                obj.x = obj.x/sqrt(sqrt_norma);
+            end              
             rho_elem = obj.filter.getP0fromP1(obj.x);
             matprop = obj.interpolation.computeMatProp(rho_elem);
             obj.physicalProblem.setMatProps(matprop);
         end
-        function obj = compute_physical_variables(obj)
-            switch obj.physicalProblem.mesh.scale
-                case 'MICRO'
-                    obj.physicalProblem.computeChomog;
-                case 'MACRO'
-                    obj.physicalProblem.computeVariables;
-            end
-        end
     end
-    
 end
+

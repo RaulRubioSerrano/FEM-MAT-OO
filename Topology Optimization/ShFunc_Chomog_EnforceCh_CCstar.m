@@ -8,7 +8,7 @@ classdef ShFunc_Chomog_EnforceCh_CCstar < ShFunc_Chomog_EnforceCh
         function obj=ShFunc_Chomog_EnforceCh_CCstar(settings,n)
             obj@ShFunc_Chomog_EnforceCh(settings);
             obj.Ch_star = obj.compute_Ch_star(settings.TOL);
-            obj.selectiveC_Cstar=settings.selectiveC_Cstar;
+            obj.selectiveC_Cstar=settings.micro.selectiveC_Cstar;
             obj.component = n;
             obj.epsilon = settings.target_parameters.epsilon_isotropy;
         end

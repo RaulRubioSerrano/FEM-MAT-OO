@@ -7,10 +7,11 @@ classdef ShFunc_Chomog_CC < ShFunc_Chomog
         function obj=ShFunc_Chomog_CC(settings)
             obj@ShFunc_Chomog(settings);
             obj.Ch_star=obj.compute_Ch_star(settings.TOL);
-            obj.selectiveC_Cstar=settings.selectiveC_Cstar;
+            obj.selectiveC_Cstar=settings.micro.selectiveC_Cstar;
         end
         function computef(obj,x,physicalProblem,interpolation,filter)
             %Cost
+            physicalProblem.computeChomog;
             obj.setPhysicalData(physicalProblem.variables);             
             costfunc = obj.Chomog - obj.Ch_star;
             costfunc = obj.selectiveC_Cstar.*costfunc;            
