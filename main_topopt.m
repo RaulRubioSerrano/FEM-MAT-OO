@@ -37,18 +37,18 @@ settings.initial_case='circle';
 %settings.ptype='Compliance_st_Volume';
 %settings.ptype='ComplianceLamPerimeter_st_Volume';
 % settings.ptype='Compliance_st_VolumePerimeter';
-% settings.ptype='Chomog_alphabeta_st_Volume';
+ settings.ptype='Chomog_alphabeta_st_Volume';
 % settings.ptype='Chomog_fraction_st_Volume';
-settings.ptype='ChomogLamPerimeter_alphabeta_st_Volume';
+%settings.ptype='ChomogLamPerimeter_alphabeta_st_Volume';
 %settings.ptype='ChomogLamPerimeter_fraction_st_Volume';
 
 %if settings.filename=='GrippingNew'
 %    settings.ptype='Gripping';
 %end
 
-%settings.optimizer='SLERP';
+settings.optimizer='SLERP';
 %settings.optimizer='PROJECTED GRADIENT';
-settings.optimizer='MMA';
+%settings.optimizer='MMA';
 %settings.optimizer='IPOPT';
 
 settings.filter='P1'; %PDE
