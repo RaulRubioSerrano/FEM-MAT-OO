@@ -16,8 +16,13 @@ classdef DOF
     
     methods (Access = {?Physical_Problem,?Filter})
         % Constructor
-        function obj = DOF(nnode,connec,nunkn,npnod,fixnodes)
+        function obj = DOF(interpolation,nunkn,bc,ifield)
             % Compute idx
+            fixnodes = obj.select_fixnodes(bc,ifield);
+            npnod = length(interpolation.xpoints(:,1));
+            nnode = interpolation.isoparametric.nnode;
+            connec = interpolation.T;
+%             nunkn = nunkn.u;
             lnods = connec';
             for i = 1:nnode
                 for j = 1:nunkn
@@ -72,6 +77,15 @@ classdef DOF
             obj.vL = vL;
         end
         
+    end
+    methods (Static)
+        function fixnodes = select_fixnodes(bc,ifield)
+            if ifield == 1
+                fixnodes = bc.fixnodes_u;
+            else
+                fixnodes = bc.fixnodes_p;
+            end
+        end
     end
     
 end

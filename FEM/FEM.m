@@ -5,6 +5,7 @@ classdef FEM < handle
     %% Public GetAccess properties definition =============================
     properties (GetAccess = public, SetAccess = protected)
         geometry
+        geometry_variable
         RHS
         LHS
     end

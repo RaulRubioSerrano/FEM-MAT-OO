@@ -9,6 +9,7 @@ classdef Solver_Dirichlet_Conditions < Solver
         %     methods (Access = public,Static)
         % Analytical Solver (A·X=b)
         function x = solve(LHS,RHS,dof,fixnodes)
+
             x = zeros(dof.ndof,1);
             if ~isempty(dof.vR)
                 x(dof.vR) = fixnodes(:,3);

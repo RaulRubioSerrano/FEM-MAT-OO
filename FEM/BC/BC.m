@@ -1,29 +1,20 @@
-classdef BC
+classdef BC<handle
     %BC Summary of this class goes here
     %   Detailed explanation goes here
     
     
-    properties (GetAccess = {?Physical_Problem,?Element,?Filter}, SetAccess = protected)
-        fixnodes
-        fixnodes_perimeter
-        neunodes
-        iN
-        iD
+    properties 
+       
     end
     
-    methods (Access = public)
+    methods (Static,Access = public)
         % Constructor
-        function obj = BC(nunkn,filename) 
-            [obj.fixnodes,obj.fixnodes_perimeter,obj.neunodes] = Preprocess.getBC(filename);
-            if (~isempty(obj.fixnodes))          
-                for i = 1:length(obj.fixnodes(:,1))
-                    obj.iD(i) = obj.fixnodes(i,1)*nunkn - nunkn + obj.fixnodes(i,2);
-                end
-            end
-            if (~isempty(obj.neunodes))
-                for i = 1:length(obj.neunodes(:,1))
-                    obj.iN(i)= obj.neunodes(i,1)*nunkn - nunkn + obj.neunodes(i,2);
-                end
+        function bc = create(ptype) 
+            switch ptype
+                case {'ELASTIC','THERMAL'}
+                    bc = BC_mechanics;
+                case 'Stokes'
+                    bc = BC_stokes;
             end
         end
     end

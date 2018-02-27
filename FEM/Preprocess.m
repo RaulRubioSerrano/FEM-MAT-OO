@@ -34,6 +34,15 @@ classdef Preprocess<handle
             forces = pointload_complete;
         end
         
+        function [Velocity,Pressure,Forces,External_elements] = getBC_stokes(filename)
+            run(filename)
+            Velocity = velocity;
+            Pressure = pressure;
+            Forces = Vol_force;
+            External_elements = External_border_elements;
+        end
+        
+        
         function [fixnodes, pnods] = getPeriodicBC(coordinates)
             % PERIODIC BOUNDARY COND
             % creation of a list containing the couples that define the periodicity

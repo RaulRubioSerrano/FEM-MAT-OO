@@ -23,8 +23,8 @@ classdef Triangle_Linear_Mass<Isoparametric
             obj.weigp(  2)= 1.0/6.0;
             obj.weigp(  3)= 1.0/6.0;
             
-%             obj.deriv = zeros(obj.ndime,obj.nnode,obj.ngaus);
-%             obj.shape = zeros(1,obj.nnode,obj.ngaus);
+            obj.deriv = zeros(obj.ndime,obj.nnode,obj.ngaus);
+            obj.shape = zeros(1,obj.nnode,obj.ngaus);
             for igauss=1:obj.ngaus
             % s : xi coordinate
             % t : eta coordinate

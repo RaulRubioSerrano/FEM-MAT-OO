@@ -10,6 +10,15 @@ classdef Physical_Problem < FEM
         dof
         bc
         problemID
+        nfields
+        %mover a protected
+        interpolation_geometry
+        quadrature_geometry
+%         geometry
+        
+        interpolation_variable
+        quadrature_variable
+%         geometry_variable
     end
     
     
@@ -18,6 +27,7 @@ classdef Physical_Problem < FEM
         material
         element
         physicalVars
+
     end
     
     %% Public methods definition ==========================================
@@ -25,29 +35,59 @@ classdef Physical_Problem < FEM
         function obj = Physical_Problem(problemID)
             obj.problemID = problemID;
             obj.mesh = Mesh(obj.problemID);
+            obj.interpolation_geometry = Interpolation.create('mesh');
+            obj.interpolation_geometry.compute(obj.mesh);
+            obj.quadrature_geometry = Quadrature (obj.interpolation_geometry.geometry_type,obj.interpolation_geometry.order);
+%             obj.geometry = Geometry(obj.interpolation_geometry,obj.quadrature_geometry,obj.mesh.nelem);
+            
+            
+           
+                obj.nfields=2; % nomes per stokes, s'haura de posar a algun altre lloc
+                order= {'QUADRATIC','LINEAR'};
+%                 order = strjoin(order);
+                quadrature_variable = Quadrature (obj.mesh.geometryType,strjoin(order(1)));
+                for i=1:obj.nfields
+%                 quadrature_variable(i) = Quadrature (obj.mesh.geometryType,strjoin(order(i)));
+                interpolation_variable(i) = Interpolation.create ('variable');
+                interpolation_variable(i).compute(obj.interpolation_geometry,strjoin(order(i)));
+                geometry(i) = Geometry(interpolation_variable(i),quadrature_variable,obj.mesh.nelem); 
+                end
+            obj.quadrature_variable = quadrature_variable;
+            obj.interpolation_variable = interpolation_variable;
+            obj.geometry_variable = geometry;
             obj.dim = DIM(obj.mesh.ptype,obj.mesh.pdim);
-            obj.geometry=Geometry(obj.mesh);
-            obj.material = Material.create(obj.mesh.ptype,obj.mesh.pdim,obj.mesh.nelem);
+
+
+%             obj.geometry=Geometry(obj.mesh);
+            obj.material = Material.create(obj.mesh.ptype,obj.mesh.pdim,obj.mesh.nelem); 
         end
         
         function preProcess(obj)
             % Create Objects
-            obj.bc = BC(obj.dim.nunkn,obj.problemID);
-            obj.dof = DOF(obj.geometry.nnode,obj.mesh.connec,obj.dim.nunkn,obj.mesh.npnod,obj.bc.fixnodes);
+
+            obj.bc = BC.create(obj.mesh.ptype);
+            obj.bc.compute(obj.dim.nunkn,obj.problemID,obj.interpolation_variable,obj.interpolation_geometry,obj.geometry_variable,obj.mesh.nelem);
+            
+            for ifield = 1:obj.nfields
+            dof(ifield) = DOF(obj.interpolation_variable(ifield),obj.dim.nunkn(ifield),obj.bc,ifield);
+            end
+            
+            obj.dof=dof;
             obj.element = Element.create(obj.mesh.ptype,obj.mesh.pdim);
             obj.physicalVars = PhysicalVariables.create(obj.mesh.ptype,obj.mesh.pdim);
             obj.solver = Solver_Dirichlet_Conditions;
         end
         
         function computeVariables(obj)
-            obj.element.computeLHS(obj.dim.nunkn,obj.dim.nstre,obj.mesh.nelem,obj.geometry,obj.material);
-            obj.element.computeRHS(obj.dim.nunkn,obj.mesh.nelem,obj.geometry.nnode,obj.bc,obj.dof.idx);
+          
+            obj.element.computeLHS(obj.dim,obj.mesh.nelem,obj.geometry_variable,obj.nfields,obj.material);
+            obj.element.computeRHS(obj.dim,obj.mesh.nelem,obj.geometry_variable,obj.bc,obj.dof);
             
             % Assembly
-            [obj.LHS,obj.RHS] = obj.Assemble(obj.element,obj.geometry.nnode,obj.dim.nunkn,obj.dof, obj.bc);
-            
+            [obj.LHS,obj.RHS] = obj.Assemble(obj.element,obj.geometry_variable,obj.dim,obj.dof,obj.bc,obj.interpolation_variable,obj.nfields);
+            [global_dof,global_fixnodes] = obj.assemble_dof_bc(obj.dof,obj.bc,obj.nfields);
             % Solver
-            sol = obj.solver.solve(obj.LHS,obj.RHS,obj.dof,obj.bc.fixnodes);
+            sol = obj.solver.solve(obj.LHS,obj.RHS,global_dof,global_fixnodes);
             obj.variables = obj.physicalVars.computeVars(sol,obj.dim,obj.geometry,obj.mesh.nelem,obj.dof.idx,obj.element,obj.material);
         end
         
@@ -134,31 +174,178 @@ classdef Physical_Problem < FEM
     
     %% Private methods definition =========================================
     methods (Access = protected, Static)
-        function [LHS,RHS] = Assemble(element,nnode,nunkn,dof,bc)
-            % Compute LHS
-            LHS = sparse(dof.ndof,dof.ndof);
-            for i = 1:nnode*nunkn
-                for j = 1:nnode*nunkn
-                    a = squeeze(element.LHS(i,j,:));
-                    LHS = LHS + sparse(dof.idx(i,:),dof.idx(j,:),a,dof.ndof,dof.ndof);
-                end
-            end
-            LHS = 1/2 * (LHS + LHS');
-            % Compute RHS
-            RHS = zeros(dof.ndof,1);
-            for i = 1:nnode*nunkn
-                b = squeeze(element.RHS(i,1,:));
-                ind = dof.idx(i,:);
-                RHS = RHS + sparse(ind,1,b',dof.ndof,1);
-            end
+        function [LHS,RHS] = Assemble(element,geometry,dim,Dof,bc,interpolation,nfields)
             
-            %Compute Global Puntual Forces
-            if ~isempty(bc.iN)
-                FextPoint = zeros(dof.ndof,1);
-                FextPoint(bc.iN)=bc.neunodes(:,3);
-                RHS = RHS + FextPoint;
+            for ifield = 1:nfields
+                for jfield = 1:nfields
+                    
+                    idx1 = Dof(ifield).idx;
+                    idx2 = Dof(jfield).idx;
+                    nunkn1 = dim.nunkn(ifield);
+                    nnode1 = geometry(ifield).nnode;
+                    nunkn2 = dim.nunkn(jfield);
+                    nnode2 = geometry(jfield).nnode;
+                    col = Dof(jfield).ndof;
+                    row = Dof(ifield).ndof;
+                    
+                    % Compute LHS
+                    LHS = sparse(row,col);
+                    for i = 1:nnode1*nunkn1
+                        for j = 1:nnode2*nunkn2
+                            mat = element.LHS{ifield,jfield};
+                            a = squeeze(mat(i,j,:));
+                            LHS = LHS + sparse(idx1(i,:),idx2(j,:),a,row,col);
+                            
+                        end
+                    end
+                    
+                    if ifield == 1 && jfield == 1
+                        LHS = 1/2 * (LHS + LHS');
+                    end
+                    
+                    LHS_global{ifield,jfield}=LHS;
+                    
+                    
+                end
+                % Compute RHS
+                RHS = zeros(Dof(ifield).ndof,1);
+                nnode=geometry(ifield).nnode;
+                nunkn = dim.nunkn(ifield);
+                idx = Dof(ifield).idx;
+                for i = 1:nnode*nunkn
+                    b = squeeze(element.RHS(i,1,:));
+                    ind = idx(i,:);
+                    RHS = RHS + sparse(ind,1,b,Dof(ifield).ndof,1);
+                end
+                RHS_global{ifield,1}=RHS;
+            end
+            LHS = cell2mat(LHS_global);
+            RHS = cell2mat(RHS_global);
+            
+            
+            
+%             %Compute Global Puntual Forces
+% %             if ~isempty(bc.iN)
+% %                 FextPoint = zeros(dof.ndof,1);
+% %                 FextPoint(bc.iN)=bc.neunodes(:,3);
+% %                 RHS = RHS + FextPoint;
+% %             end
+%  vL = [Dof(1).vL'; Dof(2).vL' + Dof(1).ndof];
+%   vR = [Dof(1).vR; Dof(2).vR + Dof(1).ndof];
+%   fixnodes = [bc.fixnodes_u(:,3); bc.fixnodes_p(:,3)];
+% %   fixnodes = bc.fixnodes_u(:,3);
+%   x = zeros(Dof(1).ndof+Dof(2).ndof,1);
+%   x(vR) = fixnodes;
+%   x(vL,1) = LHS(vL,vL)\(RHS(vL) - LHS(vL,vR)*x(vR));
+% 
+%   [vel,p] =analytical_sol(interpolation(1).xpoints,interpolation(2).xpoints);
+%   ind=1;
+%   for i=1:length(interpolation(1).xpoints(:,1))
+%       sol(i,:) = [interpolation(1).xpoints(i,1) interpolation(1).xpoints(i,2) x(ind) x(ind+1)];
+%       ind=ind+2;
+%   end
+%   
+%   close all
+%   
+% %   figure
+%    pres= [x(Dof(2).vL' + Dof(1).ndof); bc.fixnodes_p(:,3)];
+% %    pres= x(Dof(2).vL' + Dof(1).ndof); 
+% %    plot3(interpolation(2).xpoints(Dof(2).vL,1),interpolation(2).xpoints(Dof(2).vL,2),pres','+')
+%    
+%    
+%    
+%   figure;
+%   x = sol(:,1);
+%   y = sol(:,2);
+%   u = sol(:,3);
+%   v = sol(:,4);
+% %   quiver(x,y,u,v)
+% 
+% 
+% xp = [interpolation(2).xpoints(Dof(2).vL',1); interpolation(2).xpoints(Dof(2).vR',1) ];
+% yp = [interpolation(2).xpoints(Dof(2).vL',2) ;interpolation(2).xpoints(Dof(2).vR',2) ];
+% % xp = interpolation(2).xpoints(:,1); 
+% % yp = interpolation(2).xpoints(:,2);
+% 
+% tri_p = delaunay(xp,yp);
+% trisurf(tri_p,xp,yp,pres)
+% 
+% figure
+% trisurf(tri_p,xp,yp,p)
+% title('P_analitica')
+
+
+%     figure
+%    tri= delaunay(x,y);
+% %   triplot(tri,x,y,'Color',[1,1,1]*0.75)
+% %   hold on; quiver(x,y,u,v,2,'k'); hold off;
+%   x0=linspace(min(x),max(x),20);
+%   y0=linspace(min(x),max(x),20);
+% %   y0= ones(20,1)*(min(y)+max(y))/2+.;
+% FlowP=TriStream(tri,x,y,u,v,x0,y0);
+% PlotTriStream(FlowP,'r');
+% 
+% figure
+% FlowP=TriStream(tri,x,y,vel(1:2:end),vel(2:2:end),x0,y0);
+% PlotTriStream(FlowP,'r');
+% % hold on; plot(x0,y0,'r.'); hold off;
+% %   figure;
+%   startx= x;
+%   starty = y;
+% %  streamline(x,y,u,v,startx,starty)
+% 
+% figure
+% trisurf(tri,x,y,u)
+% title('u_h')
+% 
+% figure
+% trisurf(tri,x,y,vel(1:2:end))
+% title('u_{analitica}')
+% 
+% figure
+% trisurf(tri,x,y,v)
+% title('v_h')
+% 
+% figure
+% trisurf(tri,x,y,vel(2:2:end))
+% title('v_{analitica}')
+% 
+% figure
+% trisurf(tri,x,y,sqrt(u.^2+v.^2))
+% title('modul ')
+% 
+% figure
+% trisurf(tri,x,y,sqrt(vel(1:2:end).^2+vel(2:2:end).^2))
+% title('modul_{analitica}')
+
+
+        end
+        
+       
+    end
+    methods (Static)
+        function [global_dof,global_fixnodes] = assemble_dof_bc(dof,bc,nfields)
+            if nfields >1
+                global_dof.ndof=0;
+                for ifield = 1:nfields
+                    global_dof.vL{ifield,1} = dof(ifield).vL' + global_dof.ndof;
+                    global_dof.vR{ifield,1} = dof(ifield).vR + global_dof.ndof;
+                    global_dof.ndof = global_dof.ndof + dof(ifield).ndof;
+                end
+                global_dof.vL = cell2mat(global_dof.vL); 
+                global_dof.vR = cell2mat(global_dof.vR);
+                
+                global_fixnodes = [bc.fixnodes_u;bc.fixnodes_p];
+
+            else
+                global_dof.vL=dof.vL;
+                global_dof.vR=dof.vR;
+                global_dof.ndof = dof.ndof;
+                
+                global_fixnodes = bc.fixnodes;
             end
         end
     end
+    
 end
 

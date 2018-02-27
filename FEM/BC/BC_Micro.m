@@ -1,4 +1,4 @@
-classdef BC_Micro < BC
+classdef BC_Micro < BC_mechanics
     %BC Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -9,7 +9,7 @@ classdef BC_Micro < BC
     methods (Access = ?Physical_Problem)
         % Constructor
         function obj = BC_Micro(nunkn,filename,coords)
-            obj@BC(nunkn,filename);
+            obj@BC_mechanics(nunkn,filename);
             [obj.fixnodes,obj.pnodes] = Preprocess.getPeriodicBC(coords);      
         end
     end

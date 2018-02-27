@@ -8,38 +8,40 @@ classdef Element_Elastic < Element
     properties
     end
     
-    methods (Access = ?Physical_Problem)
-        function obj = computeLHS(obj,nunkn,nstre,nelem,geometry,material)
-            
-            Ke = zeros(nunkn*geometry.nnode,nunkn*geometry.nnode,nelem);
+%     methods (Access = ?Physical_Problem)
+%         
+%     end
+    methods (Access = protected)
+        function Ke = computeMatrix(obj,dim,nelem,geometry_test,geometry_variable,material,ifield,jfield)
+           
+           
+            Ke = zeros(dim.nunkn*geometry_test.nnode,dim.nunkn*geometry_variable.nnode,nelem);
             % Elastic matrix
              Cmat = material.C;           
             
-            for igauss = 1 :geometry.ngaus
+            for igauss = 1 :geometry_variable.ngaus
                 % Strain-displacement matrix
-                [obj.B, Bmat] = obj.B.computeB(nunkn,nelem,geometry.nnode,geometry.cartDeriv(:,:,:,igauss));
+                [obj.B, Bmat] = obj.B.computeB(dim.nunkn,nelem,geometry_variable.nnode,geometry_variable.cartDeriv(:,:,:,igauss));
                 
-                for iv=1:geometry.nnode*nunkn
-                    for jv=1:geometry.nnode*nunkn
-                        for istre=1:nstre
-                            for jstre=1:nstre
+                for iv=1:geometry_test.nnode*dim.nunkn
+                    for jv=1:geometry_variable.nnode*dim.nunkn
+                        for istre=1:dim.nstre
+                            for jstre=1:dim.nstre
                                 v = squeeze(Bmat(istre,iv,:).*Cmat(istre,jstre,:).*Bmat(jstre,jv,:));
-                                Ke(iv,jv,:) = squeeze(Ke(iv,jv,:)) + v(:).*geometry.dvolu(:,igauss);
+                                Ke(iv,jv,:) = squeeze(Ke(iv,jv,:)) + v(:).*geometry_variable.dvolu(:,igauss);
                             end
                         end
                         
                     end
                 end
             end
-            obj.LHS = Ke;
         end
-    end
-    methods (Access = protected)
-        function Fext = computeSuperficialRHS(obj,nunkn,nelem,nnode,bc,idx) %To be donne
-            Fext = zeros(nnode*nunkn,1,nelem);
+        
+        function Fext = computeSuperficialRHS(obj,dim,nelem,geometry_variable,bc,dof) %To be donne
+            Fext = zeros(geometry_variable.nnode*dim.nunkn,1,nelem);
         end
-        function Fext = computeVolumetricRHS(obj,nunkn,nelem,nnode,bc,idx)%To be done
-            Fext = zeros(nnode*nunkn,1,nelem);
+        function Fext = computeVolumetricRHS(obj,dim,nelem,geometry_variable,bc,dof)%To be done
+            Fext = zeros(geometry_variable.nnode*dim.nunkn,1,nelem);
             
         end
     end

@@ -17,6 +17,8 @@ classdef PhysicalVariables
                     end
                 case 'THERMAL'
                     error('Still not implemented.')
+                case 'Stokes'
+                    physicalVars = PhysicalVars_Stokes;
                 otherwise
                     error('Invalid ptype.')
             end
